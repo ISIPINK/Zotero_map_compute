@@ -21,6 +21,7 @@ def get_embedding(row):
 def create_bib_specter_embedded():
     df = pd.read_csv("./Mijn Bibliotheek.csv")
     df = df.dropna(subset=["Title", "Abstract Note"])
+
     # took 3min for 300 items on my desktop no gpu ...
     print("start embedding")
     embeddings = []

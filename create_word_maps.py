@@ -15,7 +15,7 @@ if __name__ == "__main__":
         MN_ratio=0.5,
         FP_ratio=2.0,
         distance="angular",
-        random_state=42)
+        random_state=3)
 
     pp3 = pacmap.PaCMAP(
         n_components=2,
