@@ -1,2 +1,3 @@
-# Zotero_map_compute
-Computing embeddings for the zotero map .
+see https://github.com/allenai/specter <br>
+
+SPECTER: Document-level Representation Learning using Citation-informed Transformers
