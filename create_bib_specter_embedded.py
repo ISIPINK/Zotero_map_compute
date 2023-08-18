@@ -27,6 +27,7 @@ def create_bib_specter_embedded():
     embeddings = []
     for index, row in df.iterrows():
         embeddings.append(get_embedding(row))
+        print(f"{index/len(df)} % done")
 
     with open('bib_specter_embedded.pkl', 'wb') as f:
         pickle.dump(embeddings, f)
