@@ -23,11 +23,12 @@ def create_bib_specter_embedded():
     df = df.dropna(subset=["Title", "Abstract Note"])
 
     # took 3min for 300 items on my desktop no gpu ...
+    # and downloading a pytorch_model?
     print("start embedding")
     embeddings = []
     for index, row in df.iterrows():
         embeddings.append(get_embedding(row))
-        print(f"{index/len(df)} % done")
+        print(f"{index/(len(df)+1)} % done")
 
     with open('bib_specter_embedded.pkl', 'wb') as f:
         pickle.dump(embeddings, f)
