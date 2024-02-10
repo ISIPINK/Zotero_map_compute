@@ -1,0 +1,5 @@
+panel
+jupyter
+numpy
+pandas
+git+https://github.com/TutteInstitute/thisnotthat
