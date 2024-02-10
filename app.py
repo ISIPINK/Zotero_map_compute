@@ -21,8 +21,7 @@ with open('word_pacmap3.pkl', 'rb') as f:
 
 df = pd.read_csv("Mijn Bibliotheek.csv")
 df = df.dropna(subset=["Title", "Abstract Note"])
-access_dates_month = pd.to_datetime(df["Access Date"]).fillna(
-    pd.Timestamp.min).dt.strftime('%B')
+
 
 df.rename(columns={
     "Item Type": "ItemType",
@@ -35,23 +34,45 @@ df.rename(columns={
     "Manual Tags": "ManualTags"
 }, inplace=True)
 
+
+def assign_period(date):
+    if pd.isnull(date):
+        return 'No Access Date'
+    elif date < pd.Timestamp(2022, 9, 1):
+        return 'Before Sep 2022'
+    elif date < pd.Timestamp(2023, 1, 1):
+        return 'Sep-Dec 2022'
+    elif date < pd.Timestamp(2023, 3, 1):
+        return 'Jan-Feb 2023'
+    elif date < pd.Timestamp(2023, 6, 1):
+        return 'Mar-May 2023'
+    elif date < pd.Timestamp(2023, 9, 1):
+        return 'Jun-Aug 2023'
+    elif date < pd.Timestamp(2024, 1, 1):
+        return 'Sep-Dec 2023'
+    else:
+        return 'After Dec 2023'
+
+
+df['AccessDate'] = pd.to_datetime(df["AccessDate"])
+# Assign period based on the date
+df['Period'] = df['AccessDate'].apply(assign_period)
+
 COLOR_KEY = {
-    'January': '#1f77b4',     # Dark blue
-    'February': '#268bd2',    # Slightly lighter blue
-    'March': '#2ca02c',       # Green
-    'April': '#36a641',       # Slightly brighter green
-    'May': '#fcbf49',         # Yellow
-    'June': '#fca946',        # Slightly brighter orange
-    'July': '#fc8f44',        # Orange
-    'August': '#e47745',      # Slightly darker brown
-    'September': '#d16446',   # Brown
-    'October': '#bb5147',     # Slightly darker red
-    'December': '#a73f48'     # Purple
+    'No Access Date': '#1f77b4',  # Dark blue
+    # 'Before Sep 2022': '#2ca02c',  # Green
+    'Sep-Dec 2022': '#fcbf49',  # Yellow
+    'Jan-Feb 2023': '#fc8f44',  # Orange
+    'Mar-May 2023': '#d62728',  # Red
+    'Jun-Aug 2023': '#9467bd',  # Purple
+    'Sep-Dec 2023': '#8c564b',  # Brown
+    'After Dec 2023': '#e377c2',  # Pink
 }
+
 
 basic_plot1 = tnt.BokehPlotPane(
     word_map,
-    labels=access_dates_month,
+    labels=df['Period'],
     label_color_mapping=COLOR_KEY,
     hover_text=df["Title"],
     show_legend=True,
@@ -60,7 +81,7 @@ basic_plot1 = tnt.BokehPlotPane(
 
 basic_plot2 = tnt.BokehPlotPane(
     word_map2,
-    labels=access_dates_month,
+    labels=df['Period'],
     label_color_mapping=COLOR_KEY,
     hover_text=df["Title"],
     show_legend=True,
@@ -69,7 +90,7 @@ basic_plot2 = tnt.BokehPlotPane(
 
 basic_plot3 = tnt.BokehPlotPane(
     word_map3,
-    labels=access_dates_month,
+    labels=df['Period'],
     label_color_mapping=COLOR_KEY,
     hover_text=df["Title"],
     show_legend=True,
