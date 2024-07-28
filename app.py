@@ -141,26 +141,26 @@ app = pn.Tabs(
 simplesearch = tnt.SimpleSearchWidget(basic_plot1, raw_dataframe=df)
 app = pn.Column(simplesearch, app)
 
-word_maps = [word_map, word_map2, word_map3]
-basic_plots = [basic_plot1, basic_plot2, basic_plot3]
-for w_map, plot in zip(word_maps, basic_plots):
+# word_maps = [word_map, word_map2, word_map3]
+# basic_plots = [basic_plot1, basic_plot2, basic_plot3]
+# for w_map, plot in zip(word_maps, basic_plots):
 
-    label_layers = tnt.MetadataLabelLayers(
-        np.array(embeddings),
-        np.array(w_map),
-        df["ManualTags"].str.get_dummies(";"),
-        hdbscan_min_cluster_size=2,
-        hdbscan_min_samples=2,
-        contamination=1e-6,
-        min_clusters_in_layer=5,
-        vector_metric="cosine",
-        cluster_distance_threshold=0.0,
-        random_state=0,
-        items_per_label=2
-    )
+#     label_layers = tnt.MetadataLabelLayers(
+#         np.array(embeddings),
+#         np.array(w_map),
+#         df["ManualTags"].str.get_dummies(";"),
+#         hdbscan_min_cluster_size=2,
+#         hdbscan_min_samples=2,
+#         contamination=1e-6,
+#         min_clusters_in_layer=5,
+#         vector_metric="cosine",
+#         cluster_distance_threshold=0.0,
+#         random_state=0,
+#         items_per_label=2
+#     )
 
-    plot.add_cluster_labels(
-        label_layers, text_size_scale=100, text_layer_scale_factor=3.0)
+#     plot.add_cluster_labels(
+#         label_layers, text_size_scale=100, text_layer_scale_factor=3.0)
 
 # label_layers = tnt.MetadataLabelLayers(
 #     np.array(embeddings),
