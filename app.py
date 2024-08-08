@@ -1,183 +1,117 @@
-import pickle
-import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import pacmap
 import thisnotthat as tnt
 import panel as pn
 
 pn.extension()
 pn.extension('tabulator')
 
-with open('bib_specter_embedded.pkl', 'rb') as f:
-    embeddings = pickle.load(f)
+print("Loading data...")
+zot_df = pd.read_csv('zot_clean.csv')
 
-with open('word_umap.pkl', 'rb') as f:
-    word_map = pickle.load(f)
+# Convert the date columns to datetime objects
+date_columns = ["Date", "Date Added", "Date Modified"]
+for col in date_columns:
+    zot_df[col] = pd.to_datetime(zot_df[col], errors='coerce')
 
-with open('word_pacmap2.pkl', 'rb') as f:
-    word_map2 = pickle.load(f)
+zot_df["Publication Year"] = zot_df["Publication Year"].astype("Int64")
+zot_df["Hearts"] = zot_df["Hearts"].astype("Int64")
 
-with open('word_pacmap3.pkl', 'rb') as f:
-    word_map3 = pickle.load(f)
+zot_df["Manual Tags"] = zot_df["Manual Tags"].fillna("").str.split(
+    ";").apply(lambda tags: [tag.strip() for tag in tags])
+zot_df["Common Tags"] = zot_df["Common Tags"].fillna("").str.split(
+    ";").apply(lambda tags: [tag.strip() for tag in tags])
+zot_df["Common Tags"] = zot_df["Common Tags"].apply(
+    lambda tags: [tag for tag in tags if tag != ""])
 
-df = pd.read_csv("Mijn Bibliotheek.csv")
-df = df.dropna(subset=["Title", "Abstract Note"])
+# dropping rows without title
+zot_df = zot_df.dropna(subset=['Title'])
 
+# reordering the columns
+first_order = ["Title", "Author", "Date", "Abstract Note", "Date Added"]
+new_order = first_order + \
+    [col for col in zot_df.columns.tolist() if col not in first_order]
+zot_df = zot_df.reindex(columns=new_order)
 
-df.rename(columns={
-    "Item Type": "ItemType",
-    "Title": "Title",
-    "Author": "Author",
-    "Abstract Note": "AbstractNote",
-    "Url": "Url",
-    "Date": "Date",
-    "Access Date": "AccessDate",
-    "Manual Tags": "ManualTags"
-}, inplace=True)
+# this is for lower case search
+zot_df_lowercase = zot_df.copy()
+zot_df_lowercase["Title Lower"] = zot_df_lowercase["Title"].str.lower()
+zot_df_lowercase["Author Lower"] = zot_df_lowercase["Author"].str.lower()
+zot_df_lowercase["Abstract Note Lower"] = zot_df_lowercase["Abstract Note"].str.lower()
 
+# loading computed embeddings
+embeddings_df = pd.read_csv('zot_embeddings.csv')
 
-def assign_period(date):
-    if pd.isnull(date):
-        return 'No Access Date'
-    elif date < pd.Timestamp(2022, 9, 1):
-        return 'Before Sep 2022'
-    elif date < pd.Timestamp(2023, 1, 1):
-        return 'Sep-Dec 2022'
-    elif date < pd.Timestamp(2023, 3, 1):
-        return 'Jan-Feb 2023'
-    elif date < pd.Timestamp(2023, 6, 1):
-        return 'Mar-May 2023'
-    elif date < pd.Timestamp(2023, 9, 1):
-        return 'Jun-Aug 2023'
-    elif date < pd.Timestamp(2024, 1, 1):
-        return 'Sep-Dec 2023'
-    else:
-        return 'After Dec 2023'
+print("calculating pacmap...")
+pac5 = pacmap.PaCMAP(
+    n_components=2,
+    n_neighbors=5,
+    MN_ratio=0.5,
+    FP_ratio=2.0,
+    distance="angular",
+    random_state=3)
 
+pac7 = pacmap.PaCMAP(
+    n_components=2,
+    n_neighbors=7,
+    MN_ratio=0.5,
+    FP_ratio=2.0,
+    distance="angular",
+    random_state=3)
 
-df['AccessDate'] = pd.to_datetime(df["AccessDate"])
-# Assign period based on the date
-df['Period'] = df['AccessDate'].apply(assign_period)
+# 10 sec for 720
+zot_pac5 = pac5.fit_transform(np.array(embeddings_df))
+zot_pac7 = pac7.fit_transform(np.array(embeddings_df))
 
-COLOR_KEY = {
-    'No Access Date': '#1f77b4',  # Dark blue
-    # 'Before Sep 2022': '#2ca02c',  # Green
-    'Sep-Dec 2022': '#fcbf49',  # Yellow
-    'Jan-Feb 2023': '#fc8f44',  # Orange
-    'Mar-May 2023': '#d62728',  # Red
-    'Jun-Aug 2023': '#9467bd',  # Purple
-    'Sep-Dec 2023': '#8c564b',  # Brown
-    'After Dec 2023': '#e377c2',  # Pink
-}
+print("building panel app...")
+zot_pacs = [zot_pac5, zot_pac7]
+plots = []
+for zot_pac in zot_pacs:
+    plots.append(
+        tnt.BokehPlotPane(
+            zot_pac,
+            hover_text=zot_df["Title"],
+            marker_size=(zot_df["Hearts"].fillna(0)+2)/50,
+            show_legend=True,
+            legend_location="top_right",
+            sizing_mode='stretch_both',
+            min_point_size=0.001,
+            max_point_size=0.05,
+        )
+    )
 
-
-basic_plot1 = tnt.BokehPlotPane(
-    word_map,
-    labels=df['Period'],
-    label_color_mapping=COLOR_KEY,
-    hover_text=df["Title"],
-    show_legend=True,
-    legend_location="top_right",
-    sizing_mode='stretch_both')
-
-basic_plot2 = tnt.BokehPlotPane(
-    word_map2,
-    labels=df['Period'],
-    label_color_mapping=COLOR_KEY,
-    hover_text=df["Title"],
-    show_legend=True,
-    legend_location="top_right",
-    sizing_mode='stretch_both')
-
-basic_plot3 = tnt.BokehPlotPane(
-    word_map3,
-    labels=df['Period'],
-    label_color_mapping=COLOR_KEY,
-    hover_text=df["Title"],
-    show_legend=True,
-    legend_location="top_right",
-    sizing_mode='stretch_both')
-
-dfsmall = df[["ItemType", "Title", "Author", "AbstractNote",
-              "Url", "Date", "AccessDate", "ManualTags"]]
 
 data_view = tnt.SimpleDataPane(
-    dfsmall,
+    zot_df,
     sizing_mode="stretch_both", max_rows=400, max_cols=50)
 
-basic_plot2.link(
-    basic_plot1,
-    selected="selected",
-    bidirectional=True
-)
-
-basic_plot3.link(
-    basic_plot1,
+plots[1].link(
+    plots[0],
     selected="selected",
     bidirectional=True
 )
 
 data_view.link(
-    basic_plot1,
+    plots[0],
     selected="selected",
     bidirectional=True
 )
 
 
-column1 = pn.Column(basic_plot2, name="pacmap nn 5")
-column2 = pn.Column(basic_plot1, name="umap")
-column3 = pn.Column(basic_plot3, name="pacmap nn 7")
-column4 = pn.Column(data_view, name="data")
-
-search = tnt.SearchWidget(df)
-search.link_to_plot(basic_plot1)
+tag_legend = tnt.TagWidget(zot_df["Common Tags"] + zot_df["Hearts"].fillna(
+    0).apply(lambda x: [(str(x) if x != 0 else "?") + " likeability"]))
+tag_legend.link_to_plot(plots[0])
 
 app = pn.Tabs(
-    column1,
-    column2,
-    column3,
-    column4,
-    search)
+    pn.Row(plots[0], tag_legend, name="pac7"),
+    pn.Row(plots[1], tag_legend, name="pac5"),
+    pn.Column(data_view, name="data"))
 
-simplesearch = tnt.SimpleSearchWidget(basic_plot1, raw_dataframe=df)
+simplesearch = tnt.SimpleSearchWidget(plots[0], raw_dataframe=zot_df_lowercase)
+
 app = pn.Column(simplesearch, app)
-
-# word_maps = [word_map, word_map2, word_map3]
-# basic_plots = [basic_plot1, basic_plot2, basic_plot3]
-# for w_map, plot in zip(word_maps, basic_plots):
-
-#     label_layers = tnt.MetadataLabelLayers(
-#         np.array(embeddings),
-#         np.array(w_map),
-#         df["ManualTags"].str.get_dummies(";"),
-#         hdbscan_min_cluster_size=2,
-#         hdbscan_min_samples=2,
-#         contamination=1e-6,
-#         min_clusters_in_layer=5,
-#         vector_metric="cosine",
-#         cluster_distance_threshold=0.0,
-#         random_state=0,
-#         items_per_label=2
-#     )
-
-#     plot.add_cluster_labels(
-#         label_layers, text_size_scale=100, text_layer_scale_factor=3.0)
-
-# label_layers = tnt.MetadataLabelLayers(
-#     np.array(embeddings),
-#     np.array(word_map2),
-#     df["ManualTags"].str.get_dummies(";"),
-#     hdbscan_min_cluster_size=2,
-#     hdbscan_min_samples=2,
-#     contamination=1e-6,
-#     min_clusters_in_layer=5,
-#     vector_metric="cosine",
-#     cluster_distance_threshold=0.0,
-#     random_state=0,
-#     items_per_label=2
-# )
-
-# basic_plot2.add_cluster_labels(
-#     label_layers, text_size_scale=100, text_layer_scale_factor=2.0)
 
 pn.serve(app)
 # app.servable()
