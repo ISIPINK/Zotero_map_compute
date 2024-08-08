@@ -1,7 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import pacmap
 import thisnotthat as tnt
 import panel as pn
 
@@ -44,26 +43,8 @@ zot_df_lowercase["Abstract Note Lower"] = zot_df_lowercase["Abstract Note"].str.
 # loading computed embeddings
 embeddings_df = pd.read_csv('zot_embeddings.csv')
 
-print("calculating pacmap...")
-pac5 = pacmap.PaCMAP(
-    n_components=2,
-    n_neighbors=5,
-    MN_ratio=0.5,
-    FP_ratio=2.0,
-    distance="angular",
-    random_state=3)
-
-pac7 = pacmap.PaCMAP(
-    n_components=2,
-    n_neighbors=7,
-    MN_ratio=0.5,
-    FP_ratio=2.0,
-    distance="angular",
-    random_state=3)
-
-# 10 sec for 720
-zot_pac5 = pac5.fit_transform(np.array(embeddings_df))
-zot_pac7 = pac7.fit_transform(np.array(embeddings_df))
+zot_pac5 = np.array(pd.read_csv('zot_pac5.csv', index_col=0))
+zot_pac7 = np.array(pd.read_csv('zot_pac7.csv', index_col=0))
 
 print("building panel app...")
 zot_pacs = [zot_pac5, zot_pac7]
