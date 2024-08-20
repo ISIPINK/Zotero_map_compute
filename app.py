@@ -4,6 +4,7 @@ import numpy as np
 import thisnotthat as tnt
 import panel as pn
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MultiLabelBinarizer
 from collections import Counter
 print("importing libraries...done")
 
@@ -44,7 +45,6 @@ zot_df_lowercase["Author Lower"] = zot_df_lowercase["Author"].str.lower()
 zot_df_lowercase["Abstract Note Lower"] = zot_df_lowercase["Abstract Note"].str.lower()
 
 # loading pacmap data
-zot_pac5 = np.array(pd.read_csv('./data/zot_pac5.csv', index_col=0))
 zot_pac7 = np.array(pd.read_csv('./data/zot_pac7.csv', index_col=0))
 
 # loading clusters
@@ -52,23 +52,44 @@ clusters = np.array(pd.read_csv("./data/clusters.csv", index_col=0))
 clusters = [str(label[0]) for label in clusters]
 
 print("building panel app...")
+# one hot encoding of tags for labeling
+mlb = MultiLabelBinarizer()
+
+# Fit and transform the tags
+onehot_encoded = mlb.fit_transform(zot_df['Manual Tags'])
+onehot_df = pd.DataFrame(onehot_encoded, columns=mlb.classes_)
+
+
 # tabs for pacmap viz
 plots = []
-for zot_pac in [zot_pac5, zot_pac7]:
-    plots.append(
-        tnt.BokehPlotPane(
-            zot_pac,
-            hover_text=zot_df["Date"].dt.year.astype(
-                str) + " " + zot_df["Title"],
-            marker_size=(zot_df["Hearts"].fillna(0) + 2) / 50,
-            labels=clusters,
-            show_legend=False,
-            legend_location="top_right",
-            sizing_mode='stretch_both',
-            min_point_size=0.001,
-            max_point_size=0.05,
-        )
-    )
+label_layers = tnt.MetadataLabelLayers(
+    zot_pac7,
+    zot_pac7,
+    onehot_df,
+    hdbscan_min_cluster_size=5,
+    hdbscan_min_samples=5,
+    contamination=1e-6,
+    min_clusters_in_layer=5,
+    vector_metric="euclidean",
+    cluster_distance_threshold=0.0,
+    random_state=0,
+)
+
+p = tnt.BokehPlotPane(
+    zot_pac7,
+    hover_text=zot_df["Date"].dt.year.astype(str) + " " + zot_df["Title"],
+    marker_size=(zot_df["Hearts"].fillna(0) + 2) / 50,
+    labels=clusters,
+    show_legend=False,
+    legend_location="top_right",
+    sizing_mode='stretch_both',
+    min_point_size=0.001,
+    max_point_size=0.05,
+)
+
+p.add_cluster_labels(label_layers, text_size_scale=35,
+                     text_layer_scale_factor=2.0, max_text_size=40, min_text_size=10)
+plots.append(p)
 
 # tabs using dates
 scaler = MinMaxScaler()
@@ -77,7 +98,7 @@ for date in [zot_df["Date Added"], zot_df["Date"]]:
     date_scaled = 20 * scaler.fit_transform(date_num)
     plots.append(
         tnt.BokehPlotPane(
-            np.column_stack((date_scaled, zot_pac5[:, 0])),
+            np.column_stack((date_scaled, zot_pac7[:, 0])),
             hover_text=zot_df["Date"].dt.year.astype(
                 str) + " " + zot_df["Title"],
             marker_size=(zot_df["Hearts"].fillna(0) + 2) / 50,
@@ -123,7 +144,7 @@ tag_legend = tnt.TagWidget(zot_df["Common Tags"] + zot_df["Hearts"].fillna(
 tag_legend.link_to_plot(plots[0])
 
 tabs = [pn.Row(plot, tag_legend, name=name)
-        for plot, name in zip(plots, ["pac5", "pac7", "Date Added", "Date"])]
+        for plot, name in zip(plots, ["pac7", "Date Added", "Date"])]
 
 
 # tags stats tab, just a plot
