@@ -11,7 +11,7 @@ pn.extension()
 pn.extension('tabulator')
 
 print("Loading data...")
-zot_df = pd.read_csv('zot_clean.csv')
+zot_df = pd.read_csv('./data/zot_clean.csv')
 
 # Convert the date columns to datetime objects
 date_columns = ["Date", "Date Added", "Date Modified"]
@@ -43,23 +43,25 @@ zot_df_lowercase["Title Lower"] = zot_df_lowercase["Title"].str.lower()
 zot_df_lowercase["Author Lower"] = zot_df_lowercase["Author"].str.lower()
 zot_df_lowercase["Abstract Note Lower"] = zot_df_lowercase["Abstract Note"].str.lower()
 
-# loading computed embeddings
-embeddings_df = pd.read_csv('zot_embeddings.csv')
+# loading pacmap data
+zot_pac5 = np.array(pd.read_csv('./data/zot_pac5.csv', index_col=0))
+zot_pac7 = np.array(pd.read_csv('./data/zot_pac7.csv', index_col=0))
 
-zot_pac5 = np.array(pd.read_csv('zot_pac5.csv', index_col=0))
-zot_pac7 = np.array(pd.read_csv('zot_pac7.csv', index_col=0))
+# loading clusters
+clusters = np.array(pd.read_csv("./data/clusters.csv", index_col=0))
+clusters = [str(label[0]) for label in clusters]
 
 print("building panel app...")
 # tabs for pacmap viz
-zot_pacs = [zot_pac5, zot_pac7]
 plots = []
-for zot_pac in zot_pacs:
+for zot_pac in [zot_pac5, zot_pac7]:
     plots.append(
         tnt.BokehPlotPane(
             zot_pac,
             hover_text=zot_df["Date"].dt.year.astype(
                 str) + " " + zot_df["Title"],
             marker_size=(zot_df["Hearts"].fillna(0) + 2) / 50,
+            labels=clusters,
             show_legend=False,
             legend_location="top_right",
             sizing_mode='stretch_both',
@@ -69,9 +71,8 @@ for zot_pac in zot_pacs:
     )
 
 # tabs using dates
-dates = [zot_df["Date Added"], zot_df["Date"]]
 scaler = MinMaxScaler()
-for date in dates:
+for date in [zot_df["Date Added"], zot_df["Date"]]:
     date_num = date.apply(lambda x: x.timestamp()).values.reshape(-1, 1)
     date_scaled = 20 * scaler.fit_transform(date_num)
     plots.append(
@@ -80,6 +81,7 @@ for date in dates:
             hover_text=zot_df["Date"].dt.year.astype(
                 str) + " " + zot_df["Title"],
             marker_size=(zot_df["Hearts"].fillna(0) + 2) / 50,
+            labels=clusters,
             show_legend=False,
             legend_location="top_right",
             sizing_mode='stretch_both',
