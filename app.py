@@ -217,5 +217,5 @@ app = pn.Tabs(
 simplesearch = tnt.SimpleSearchWidget(plots[0], raw_dataframe=zot_df_lowercase)
 app = pn.Column(simplesearch, app)
 
-pn.serve(app)
-# app.servable()
+# pn.serve(app)
+app.servable()
