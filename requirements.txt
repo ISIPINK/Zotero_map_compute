@@ -2,4 +2,11 @@ panel
 jupyter
 numpy
 pandas
+matplotlib
+transformers
+torch
+adapters
+pacmap
+bokeh 
+ipykernel
 git+https://github.com/TutteInstitute/thisnotthat
